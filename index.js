@@ -9,7 +9,6 @@ app.listen(process.env.PORT || 3000, () =>
 
 let bot = null;
 let isConnecting = false;
-
 let intervals = [];
 
 function clearIntervals() {
@@ -29,13 +28,14 @@ function startBot() {
   });
 
   bot.once("spawn", () => {
-    console.log("🤖 Bot joined server!");
+    console.log("🤖 Pro Survival Bot joined!");
     isConnecting = false;
-    startAFK();
+
+    startSurvival();
   });
 
   bot.on("end", () => {
-    console.log("🔁 Bot disconnected");
+    console.log("🔁 Disconnected... reconnecting");
 
     clearIntervals();
     bot = null;
@@ -53,36 +53,73 @@ function startBot() {
   });
 }
 
-function startAFK() {
+function startSurvival() {
   if (!bot) return;
 
-  // 🟢 Movement
+  // 🧠 STATUS CHECK LOOP
   intervals.push(setInterval(() => {
     if (!bot?.entity) return;
 
-    const actions = ["forward", "back", "left", "right"];
-    const action = actions[Math.floor(Math.random() * actions.length)];
+    // ❤️ Auto eat when hungry
+    if (bot.food < 14) {
+      const food = bot.inventory.items().find(i =>
+        i.name.includes("bread") ||
+        i.name.includes("steak") ||
+        i.name.includes("cooked")
+      );
 
-    bot.setControlState(action, true);
+      if (food) {
+        bot.equip(food, "hand", () => {
+          bot.consume();
+          console.log("🍞 Eating food");
+        });
+      }
+    }
 
-    setTimeout(() => {
-      if (bot) bot.setControlState(action, false);
-    }, 1500);
-
-    if (Math.random() > 0.7) {
-      bot.setControlState("jump", true);
-      setTimeout(() => bot.setControlState("jump", false), 300);
+    // ❤️ Safety check
+    if (bot.health < 10) {
+      console.log("⚠️ Low health - stopping risky actions");
     }
   }, 5000));
 
-  // 🔵 Look around
+  // ⛏️ SAFE MINING (ONLY NEAR BLOCKS)
+  intervals.push(setInterval(async () => {
+    if (!bot?.entity) return;
+
+    try {
+      const pos = bot.entity.position;
+      const block = bot.blockAt(pos.offset(1, 0, 0));
+
+      if (block && block.name !== "air") {
+        await bot.dig(block);
+        console.log("⛏️ Mining:", block.name);
+      }
+    } catch (e) {}
+  }, 12000));
+
+  // 🧭 NATURAL MOVEMENT
+  intervals.push(setInterval(() => {
+    if (!bot?.entity) return;
+
+    const directions = ["forward", "back"];
+    const dir = directions[Math.floor(Math.random() * directions.length)];
+
+    bot.setControlState(dir, true);
+
+    setTimeout(() => {
+      if (bot) bot.setControlState(dir, false);
+    }, 1500);
+  }, 7000));
+
+  // 👀 LOOK AROUND (SMOOTH)
   intervals.push(setInterval(() => {
     if (!bot?.entity) return;
 
     const yaw = Math.random() * Math.PI * 2;
-    const pitch = (Math.random() - 0.5) * Math.PI;
+    const pitch = (Math.random() - 0.5) * 0.5;
+
     bot.look(yaw, pitch, true);
-  }, 4000));
+  }, 6000));
 }
 
 startBot();
