@@ -13,7 +13,7 @@ function startBot() {
   isConnecting = true
 
   bot = mineflayer.createBot({
-    host: 'OGOverflow.aternos.me',
+    host: 'OGOverflow.aternos.me:52600',
     port: 52600,
     username: 'UltraAFK_bot2011'
   })
